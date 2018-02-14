@@ -3,6 +3,8 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Kontur.ImageTransformer
 {
@@ -93,7 +95,40 @@ namespace Kontur.ImageTransformer
 
             listenerContext.Response.StatusCode = (int)HttpStatusCode.OK;
             using (var writer = new StreamWriter(listenerContext.Response.OutputStream))
-                writer.WriteLine("Hello, world!");
+            {
+                if (listenerContext.Request.Url.Segments[1] == "process/" /*&& listenerContext.Request.HttpMethod == "POST"*/)
+                {
+                    string transform = listenerContext.Request.Url.Segments[2].Replace("/", "");
+                    switch (transform)
+                    {
+                        case "rotate-cw":
+                            using (Image image = Image.FromStream(listenerContext.Request.InputStream))
+                            {
+                                image.RotateFlip(RotateFlipType.Rotate90FlipY);
+                                using (MemoryStream mStream = new MemoryStream())
+                                {
+                                    Bitmap b = new Bitmap(500,200);
+                                    Graphics g = Graphics.FromImage(b);
+                                    g.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height), new Rectangle(0,0,50,20), GraphicsUnit.Pixel);
+                                    //image.Save(mStream, ImageFormat.Png);
+                                    //b.Save("55555.png", ImageFormat.Png);
+                                    b.Save(mStream, ImageFormat.Png);
+                                    mStream.WriteTo(listenerContext.Response.OutputStream);
+                                }
+                            }
+                            break;
+                        case "rotate-ccw":
+                            break;
+                        case "flip-v":
+                            break;
+                        case "flip-h":
+                            break;
+                        default:
+                            listenerContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                            break;
+                    }
+                }
+            }
         }
 
         private readonly HttpListener listener;
